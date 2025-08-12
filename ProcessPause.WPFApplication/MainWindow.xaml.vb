@@ -4,6 +4,7 @@ Imports System.Threading
 
 Class MainWindow
     Dim processes() As Process
+
     <DllImport("kernel32.dll")>
     Private Shared Function OpenThread(dwDesiredAccess As Integer, bInheritHandle As Boolean, dwThreadId As Integer) As IntPtr
     End Function
@@ -22,88 +23,103 @@ Class MainWindow
 
     Const THREAD_SUSPEND_RESUME As Integer = &H2
 
-
     Function GetSelectedProcess() As Process
         Try
-            Dim proccessId As String = ProcessesList.SelectedItem.ToString().Split("-").FirstOrDefault().Trim()
-            Return Process.GetProcessById(Convert.ToInt32(proccessId))
-        Catch exception As Exception
-            MessageBox.Show("Proccess not found.")
+            Dim selected = ProcessesList.SelectedItem
+            If selected Is Nothing Then Return Nothing
+            Dim processIdString As String = selected.ToString().Split("-"c).FirstOrDefault().Trim()
+            Dim pid As Integer
+            If Integer.TryParse(processIdString, pid) Then
+                Return Process.GetProcessById(pid)
+            Else
+                Return Nothing
+            End If
+        Catch ex As Exception
+            MessageBox.Show("Process not found.")
+            Return Nothing
         End Try
     End Function
 
     Sub Search_OnClick()
-        Dim filter As String = Filter_ComboBox.SelectedValue
+        Dim filter As String = Filter_ComboBox.SelectedItem.Content
+        Dim searchText As String = Filter_TextBox.Text
 
-        If String.IsNullOrEmpty(Filter_TextBox.Text) Then
+        If String.IsNullOrEmpty(searchText) Then
             processes = Process.GetProcesses()
+            ProccessList_Render()
             Return
         End If
 
-        If filter = "Id" Then
-            Dim founded = Process.GetProcessById(Convert.ToInt32(Filter_TextBox.Text))
-
-            If founded Is Nothing Then
-                MessageBox.Show("Processo não encontrado.")
+        Try
+            If filter = "Id" Then
+                Dim pid As Integer
+                If Integer.TryParse(searchText, pid) Then
+                    Dim founded = Process.GetProcessById(pid)
+                    processes = {founded}
+                Else
+                    MessageBox.Show("Por favor, insira um ID válido.")
+                    Return
+                End If
+            ElseIf filter = "Name" Then
+                processes = Process.GetProcesses().Where(Function(p) p.ProcessName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0).ToArray()
             Else
-                processes = {founded}
+                MessageBox.Show("Selecione um filtro válido.")
+                Return
             End If
-        End If
+        Catch ex As Exception
+            MessageBox.Show("Processo não encontrado ou erro: " & ex.Message)
+            Return
+        End Try
 
         ProccessList_Render()
     End Sub
 
     Sub Pause_Button_OnClick()
-        Dim proccess = GetSelectedProcess()
-
-        If proccess Is Nothing Then Return
+        Dim process = GetSelectedProcess()
+        If process Is Nothing Then Return
 
         Try
-            For Each thread As ProcessThread In proccess.Threads
+            For Each thread As ProcessThread In process.Threads
                 Dim pOpenThread = OpenThread(THREAD_SUSPEND_RESUME, False, thread.Id)
-
                 If pOpenThread <> IntPtr.Zero Then
                     SuspendThread(pOpenThread)
                     CloseHandle(pOpenThread)
                 End If
             Next
-            ProcessesList.Items.Clear()
+            processes = Process.GetProcesses()
             ProccessList_Render()
-            MessageBox.Show($"Process {proccess.ProcessName} suspended.")
-        Catch exception As Exception
-            MessageBox.Show("Error suspending process: " & exception.Message)
+            MessageBox.Show($"Process {process.ProcessName} suspended.")
+        Catch ex As Exception
+            MessageBox.Show("Error suspending process: " & ex.Message)
         End Try
-
     End Sub
 
     Sub Run_Button_OnClick()
-        Dim proccess = GetSelectedProcess()
-
-        If proccess Is Nothing Then Return
+        Dim process = GetSelectedProcess()
+        If process Is Nothing Then Return
 
         Try
-            For Each thread As ProcessThread In proccess.Threads
+            For Each thread As ProcessThread In process.Threads
                 Dim pOpenThread = OpenThread(THREAD_SUSPEND_RESUME, False, thread.Id)
-
                 If pOpenThread <> IntPtr.Zero Then
                     ResumeThread(pOpenThread)
                     CloseHandle(pOpenThread)
                 End If
             Next
-            ProcessesList.Items.Clear()
+            processes = Process.GetProcesses()
             ProccessList_Render()
-            MessageBox.Show($"Process {proccess.ProcessName} resumed.")
-        Catch excpetion As Exception
-            MessageBox.Show("Error resuming process: " & excpetion.Message)
+            MessageBox.Show($"Process {process.ProcessName} resumed.")
+        Catch ex As Exception
+            MessageBox.Show("Error resuming process: " & ex.Message)
         End Try
     End Sub
 
     Sub ProccessList_Render()
+        ProcessesList.Items.Clear()
         For Each process As Process In processes
             Dim status As String = If(process.Responding, "Running", "Not Responding")
-            ProcessesList.Items.Add($"{process.Id} - {process.ProcessName} - {process} - {status}")
+            ProcessesList.Items.Add($"{process.Id} - {process.ProcessName} - {status}")
         Next
-
     End Sub
 
     Private Sub Window_Loaded(sender As Object, e As RoutedEventArgs)
