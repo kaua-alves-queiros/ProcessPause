@@ -57,17 +57,17 @@ Class MainWindow
                     Dim founded = Process.GetProcessById(pid)
                     processes = {founded}
                 Else
-                    MessageBox.Show("Por favor, insira um ID válido.")
+                    MessageBox.Show("Insert a valid ID.")
                     Return
                 End If
             ElseIf filter = "Name" Then
                 processes = Process.GetProcesses().Where(Function(p) p.ProcessName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0).ToArray()
             Else
-                MessageBox.Show("Selecione um filtro válido.")
+                MessageBox.Show("Select a valid filter")
                 Return
             End If
         Catch ex As Exception
-            MessageBox.Show("Processo não encontrado ou erro: " & ex.Message)
+            MessageBox.Show("Process not found or Error: " & ex.Message)
             Return
         End Try
 
