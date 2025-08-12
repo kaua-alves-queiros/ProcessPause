@@ -45,7 +45,7 @@ Class MainWindow
         Dim searchText As String = Filter_TextBox.Text
 
         If String.IsNullOrEmpty(searchText) Then
-            processes = Process.GetProcesses()
+            ProcessList_Load()
             ProccessList_Render()
             Return
         End If
@@ -86,7 +86,7 @@ Class MainWindow
                     CloseHandle(pOpenThread)
                 End If
             Next
-            processes = Process.GetProcesses()
+            ProcessList_Load()
             ProccessList_Render()
             MessageBox.Show($"Process {process.ProcessName} suspended.")
         Catch ex As Exception
@@ -106,7 +106,7 @@ Class MainWindow
                     CloseHandle(pOpenThread)
                 End If
             Next
-            processes = Process.GetProcesses()
+            ProcessList_Load()
             ProccessList_Render()
             MessageBox.Show($"Process {process.ProcessName} resumed.")
         Catch ex As Exception
@@ -122,8 +122,12 @@ Class MainWindow
         Next
     End Sub
 
-    Private Sub Window_Loaded(sender As Object, e As RoutedEventArgs)
+    Sub ProcessList_Load()
         processes = Process.GetProcesses()
+    End Sub
+
+    Private Sub Window_Loaded(sender As Object, e As RoutedEventArgs)
+        ProcessList_Load()
         ProccessList_Render()
     End Sub
 End Class
