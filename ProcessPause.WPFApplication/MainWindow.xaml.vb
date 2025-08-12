@@ -115,12 +115,38 @@ Class MainWindow
     End Sub
 
     Sub ProccessList_Render()
-        ProcessesList.Items.Clear()
-        For Each process As Process In processes
-            Dim status As String = If(process.Responding, "Running", "Not Responding")
-            ProcessesList.Items.Add($"{process.Id} - {process.ProcessName} - {status}")
+        Dim processIds = New HashSet(Of Integer)(processes.Select(Function(p) p.Id))
+
+        For i As Integer = ProcessesList.Items.Count - 1 To 0 Step -1
+            Dim itemText As String = ProcessesList.Items(i).ToString()
+            Dim idString As String = itemText.Split("-"c).First().Trim()
+            Dim id As Integer
+            If Integer.TryParse(idString, id) Then
+                If Not processIds.Contains(id) Then
+                    ProcessesList.Items.RemoveAt(i)
+                End If
+            Else
+                ProcessesList.Items.RemoveAt(i)
+            End If
+        Next
+
+        Dim existingIds = New HashSet(Of Integer)
+        For Each item As String In ProcessesList.Items
+            Dim idString As String = item.Split("-"c).First().Trim()
+            Dim id As Integer
+            If Integer.TryParse(idString, id) Then
+                existingIds.Add(id)
+            End If
+        Next
+
+        For Each proc As Process In processes
+            If Not existingIds.Contains(proc.Id) Then
+                Dim status As String = If(proc.Responding, "Running", "Not Responding")
+                ProcessesList.Items.Add($"{proc.Id} - {proc.ProcessName} - {status}")
+            End If
         Next
     End Sub
+
 
     Sub ProcessList_Load()
         processes = Process.GetProcesses()
